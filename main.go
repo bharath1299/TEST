@@ -36,7 +36,7 @@ var numberSuccessor *int
 var localPort string
 var running, alreadyCreated bool
 var node *Node
-var add NodeAddress
+var add nodeAddress
 
 var FingerTableSize = 5
 
@@ -74,19 +74,19 @@ func main() {
 		return
 	}
 	
-	add = NodeAddress(*address + localPort)
+	add = nodeAddress(*address + localPort)
 	node = &Node{
 		Address:     add,
-		Successors:  []NodeAddress{},
+		Successors:  []nodeAddress{},
 		Predecessor: "",
-		FingerTable: []NodeAddress{},
+		FingerTable: []nodeAddress{},
 		Bucket:      make(map[Key]string),
 	}
 
 	server(*address, localPort)
 
 	if len(*joinAddress) > 0 && *joinPort > 0 { 
-		add := NodeAddress(*joinAddress + ":" + strconv.Itoa(*joinPort))
+		add := nodeAddress(*joinAddress + ":" + strconv.Itoa(*joinPort))
 		join(add)
 	} else {
 		args := []string{*address + localPort}
@@ -135,7 +135,7 @@ func create(args []string) { //function to create a new Chord ring
 
 func StoreFile(args []string) {  //function to store a file in the Chord DHT
 	filename := args[1]
-	EncryptingFile([]byte("Secret key"), filename, filename)
+	EncryptingFile([]byte("Hello! This is my encryption key"), filename, filename)
 	fileContent, err := os.ReadFile(filename)
 	if err != nil {
 		fmt.Println("Cannot read the file: " + err.Error())
@@ -230,7 +230,7 @@ func findNode(args []string) string {
 		case true:
 			flag = true
 		case false:
-			add = NodeAddress(reply.Forward)
+			add = nodeAddress(reply.Forward)
 		}
 	}
 	return reply.Reply
@@ -238,7 +238,7 @@ func findNode(args []string) string {
 
 func LookUp(args []string) { //function to look up the node responsible for storing a file in the Chord DHT.
 	add := findNode(args)
-	fmt.Println(hashAddress(NodeAddress(add)), add)
+	fmt.Println(hashAddress(nodeAddress(add)), add)
 	SendRequest(add, args[1])
 }
 
@@ -289,7 +289,7 @@ func cp(args []string) { //function to handle predecessor checks.
 	if !ok {
 		node.mu.Lock()
 		fmt.Println("Can not connect to predecessor")
-		node.Predecessor = NodeAddress("")
+		node.Predecessor = nodeAddress("")
 		node.mu.Unlock()
 		return
 	}
@@ -298,13 +298,13 @@ func cp(args []string) { //function to handle predecessor checks.
 func fix_fingers() { //function to fix the finger table of the current node.
 	if len(node.FingerTable) == 0 {
 		node.mu.Lock()
-		node.FingerTable = []NodeAddress{node.Successors[0]}
+		node.FingerTable = []nodeAddress{node.Successors[0]}
 		node.mu.Unlock()
 		return
 	}
 
 	node.mu.Lock()
-	node.FingerTable = []NodeAddress{}
+	node.FingerTable = []nodeAddress{}
 	node.mu.Unlock()
 	for next := 1; next <= FingerTableSize; next++ {
 		offset := int64(math.Pow(2, float64(next)-1)) //Calculates the offset for the next finger using the Chord formula
@@ -323,18 +323,18 @@ func fix_fingers() { //function to fix the finger table of the current node.
 			case true:
 				node.mu.Lock()
 
-				node.FingerTable = append(node.FingerTable, NodeAddress(reply.Reply))
+				node.FingerTable = append(node.FingerTable, nodeAddress(reply.Reply))
 				flag = true
 				node.mu.Unlock()
 			case false:
 				if strings.Compare(reply.Forward, string(node.Address)) == 0 {
 					node.mu.Lock()
 					flag = true
-					node.FingerTable = append(node.FingerTable, NodeAddress(reply.Forward))
+					node.FingerTable = append(node.FingerTable, nodeAddress(reply.Forward))
 					node.mu.Unlock()
 					break
 				}
-				add = NodeAddress(reply.Forward)
+				add = nodeAddress(reply.Forward)
 			}
 		}
 	}
@@ -351,18 +351,18 @@ func stabilize(args []string) { //function to stabilize the Chord ring
 		node.mu.Lock()
 		node.Successors = node.Successors[1:]
 		if len(node.Successors) == 0 {
-			node.Successors = []NodeAddress{node.Address}
+			node.Successors = []nodeAddress{node.Address}
 		}
 		node.mu.Unlock()
 		return
 	}
 	node.mu.Lock()
 	addH := hashAddress(node.Address)                 // Current node
-	addressH := hashAddress(NodeAddress(reply.Reply)) // Predecessor
+	addressH := hashAddress(nodeAddress(reply.Reply)) // Predecessor
 	succH := hashAddress(node.Successors[0])          // Successor
 
 	if Inbetween(addH, addressH, succH, true) && reply.Reply != "" {
-		node.Successors = []NodeAddress{NodeAddress(reply.Reply)}
+		node.Successors = []nodeAddress{nodeAddress(reply.Reply)}
 	}
 
 	node.mu.Unlock()
@@ -374,7 +374,7 @@ func stabilize(args []string) { //function to stabilize the Chord ring
 	}
 	node.mu.Lock()
 
-	node.Successors = []NodeAddress{node.Successors[0]}
+	node.Successors = []nodeAddress{node.Successors[0]}
 	node.Successors = append(node.Successors, reply.Successors...)
 	if len(node.Successors) > *numberSuccessor {
 		node.Successors = node.Successors[:*numberSuccessor]
@@ -407,7 +407,7 @@ func server(address string, port string) {//function to start the RPC server for
 	fmt.Println("Created node at address: " + address + localPort)
 }
 
-func join(address NodeAddress) { //function to join an existing Chord ring.
+func join(address nodeAddress) { //function to join an existing Chord ring.
 	reply := Reply{}
 	args := Args{Command: "", Address: string(node.Address), Offset: 0}
 
@@ -421,10 +421,10 @@ func join(address NodeAddress) { //function to join an existing Chord ring.
 
 		switch found := reply.Found; found {
 		case true:
-			node.join(NodeAddress(reply.Reply))
+			node.join(nodeAddress(reply.Reply))
 			flag = true
 		case false:
-			add = NodeAddress(reply.Forward)
+			add = nodeAddress(reply.Forward)
 		}
 	}
 }
@@ -471,7 +471,7 @@ func SendRequest(address string, filename string) error { //function to send a r
 		return nil
 	}
 
-	text, err := DecryptingMessage([]byte("Secret key"), reply.Content)
+	text, err := DecryptingMessage([]byte("Hello! This is my encryption key"), reply.Content)
 	if err != nil {
 		fmt.Println("Error decrypting ", err)
 		return nil

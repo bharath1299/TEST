@@ -13,7 +13,7 @@ type Reply struct {
 	Found      bool
 	Reply      string
 	Forward    string
-	Successors []NodeAddress
+	Successors []nodeAddress
 	Content    string
 }
 
@@ -22,5 +22,5 @@ type s struct {
 }
 
 type r struct {
-	Address NodeAddress
+	Address nodeAddress
 }
