@@ -524,13 +524,10 @@ func dump(args []string) { //function to print the state of the current node.
 
 func PrintState(args []string) { //function to print the state of the Chord DHT.
 
-	fmt.Println("Node Information: ")
+	fmt.Println("Chord client’s own node information: ")
 	fmt.Println(node.Address, hashAddress(node.Address))
 
-	fmt.Println("My Predecessor: ")
-	fmt.Println(node.Predecessor, hashAddress(node.Predecessor))
-
-	fmt.Println("My Successors:")
+	fmt.Println("Successor list:")
 	for _, s := range node.Successors {
 		fmt.Println(s, hashAddress(s))
 	}
